@@ -5,39 +5,19 @@ export PATH
 
 [ "$EUID" -ne '0' ] && echo "Error,This script must be run as root! " && exit 1
 
-echo "选择你的要安装的版本，列表如下"
-echo "1: Yankee_bbr_powered"
-echo "2: Nanqinlang_bbr_powered"
-echo "请在下方空白处输入编号数字并回车以确认："
-echo "或者ctrl+c退出"
-read CBBR
-if [ $CBBR = 1 ]
-then
-wget -O ./tcp_bbr_powered.c https://gist.github.com/anonymous/ba338038e799eafbba173215153a7f3a/raw/55ff1e45c97b46f12261e07ca07633a9922ad55d/tcp_tsunami.c
-sed -i "s/tsunami/bbr_powered/g" tcp_bbr_powered.c
-elif [ $CBBR = 2 ]
-then
-wget -O ./tcp_bbr_powered.c https://raw.githubusercontent.com/nanqinlang/tcp_nanqinlang-test/master/tcp_nanqinlang.c
-sed -i "s/nanqinlang/bbr_powered/g" tcp_bbr_powered.c
-else
-    echo "错误！请输入正确编号再重试"
-    exit 0
-fi
-
 KernelList="$(dpkg -l |grep 'linux-image' |awk '{print $2}')"
-[ -z "$(echo $KernelList |grep -o linux-image-4.11.8-041108-generic)" ] && echo "Install error." && exit 1
+[ -z "$(echo $KernelList |grep -o linux-image-4.15.0-23-generic)" ] && echo "Install error." && exit 1
 for KernelTMP in `echo "$KernelList"`
- do
-  [ "$KernelTMP" != "linux-image-4.11.8-041108-generic" ] && echo -ne "Uninstall Old Kernel\n\t$KernelTMP\n" && apt-get purge "$KernelTMP" -y >/dev/null 2>&1
+do
+  [ "$KernelTMP" != "linux-image-4.15.0-23-generic" ] && echo -ne "Uninstall Old Kernel\n\t$KernelTMP\n" && apt-get purge "$KernelTMP" -y >/dev/null 2>&1
 done
 
-apt purge linux-headers* -y
-wget --no-check-certificate -O linux-headers-4.11.8.deb https://raw.githubusercontent.com/xratzh/CBBR/master/debkernel/linux-headers-4.11.8.deb
-dpkg -i linux-headers-4.11.8.deb
+apt purge linux-headers* linux-modules* -y
+apt install linux-headers-4.15.0-23-generic linux-modules-4.15.0-23-generic linux-modules-extra-4.15.0-23-generic -y
 
-wget --no-check-certificate -O linux-headers-generic-4.11.8.deb https://raw.githubusercontent.com/xratzh/CBBR/master/debkernel/linux-headers-generic-4.11.8.deb
-dpkg -i linux-headers-generic-4.11.8.deb
-rm linux-headers-4.11.8.deb linux-headers-generic-4.11.8.deb
+wget -O ./tcp_bbr_powered.c https://raw.githubusercontent.com/tcp-nanqinlang/general/master/General/Debian/source/kernel-v4.15/tcp_nanqinlang.c
+sed -i "s/nanqinlang/bbr_powered/g" tcp_bbr_powered.c
+
 which gcc >/dev/null 2>&1
 [ $? -ne '0' ] && {
 echo "Install gcc..."
@@ -78,10 +58,9 @@ lsmod |grep -q 'bbr_powered'
 [ $? -eq '0' ] && {
 sysctl -p >/dev/null 2>&1
 echo "Finish! "
+apt-mark hold linux-image-4.15.0-23-generic # 锁定内核版本
 exit 0
 } || {
 echo "Error, Loading BBR POWERED."
 exit 1
 }
-
-apt-mark hold linux-image-4.11.8-041108-generic # 锁定内核版本
